@@ -1,0 +1,41 @@
+#!name = 红果短剧去开屏广告
+#!desc = 拦截红果短剧（Eggplant，app_id 8662）的开屏/启动页广告请求：字节广告下发接口 ads*.zijieapi.com、穿山甲 pangolin-sdk-toutiao.com / eoff6.com、广告素材 ad-sign.byteimg.com / reading-ad.qznovelvod.com 等。纯规则拦截，无需安装 MITM 证书；短剧视频域名（*-reading-video.qznovelvod.com 等）全部放行，不影响播放。若抖音/头条等其他字节系 App 出现异常，请注释下方 snssdk 相关规则。
+#!author = Doubao
+#!system = iOS,iPadOS
+#!loon_version = 3.0.0
+#!date = 2026-10-28
+#!tag = 去广告,红果短剧,字节跳动
+
+[Rule]
+# ============ 核心：字节广告下发 / 开屏接口 ============
+# 红果短剧（番茄系 App）的开屏广告素材由 ads*.zijieapi.com 系列接口下发
+# （如 ads0-normal-lq.zijieapi.com / ads1-normal-lf.zijieapi.com），拦截后
+# SDK 拿不到广告素材，App 会跳过广告直接进入首页。
+# 注意：不会命中 gecko.zijieapi.com（配置下发，App 正常运行必需）。
+DOMAIN-WILDCARD,ads*-normal-l*.zijieapi.com,REJECT
+
+# ============ 穿山甲（Pangle）广告 SDK ============
+# 红果短剧内嵌字节穿山甲广告 SDK，开屏/激励广告走以下广告域
+DOMAIN-SUFFIX,pangolin-sdk-toutiao.com,REJECT
+DOMAIN-SUFFIX,eoff6.com,REJECT
+
+# ============ 红果短剧广告素材 / 广告视频 ============
+# 仅拦截广告素材域；正片视频域（*-reading-video.qznovelvod.com）不拦截
+DOMAIN-WILDCARD,*-reading-ad.qznovelvod.com,REJECT
+DOMAIN-WILDCARD,*-ad-sign.byteimg.com,REJECT
+DOMAIN-WILDCARD,*-misc-lq.fqnovel.com,REJECT
+
+# ============ 字节旧版开屏 / 广告回传接口 ============
+# 老版本红果短剧/番茄系使用的开屏与广告回传域；可能被抖音、今日头条等
+# 其他字节系 App 共用。如开启后其他 App 异常，请注释掉对应行。
+DOMAIN,is.snssdk.com,REJECT
+DOMAIN,i.snssdk.com,REJECT
+DOMAIN,security-lq.snssdk.com,REJECT
+
+# ============ 可选激进项（默认关闭） ============
+# 若按默认规则运行后开屏广告仍出现，可取消注释下面 1~2 行并重启 LOON。
+# 注意：这些域名可能与正片视频/CDN 资源混用，拦截后若出现视频无法播放，
+# 请立即恢复注释。
+# DOMAIN-WILDCARD,*-iosreadingvideo.qznovelvod.com,REJECT
+# DOMAIN-SUFFIX,v11-reading-video.qznovelvod.com,REJECT
+# DOMAIN-SUFFIX,novelapp.ixigua.com,REJECT
