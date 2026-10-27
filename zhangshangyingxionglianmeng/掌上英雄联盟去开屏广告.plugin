@@ -1,0 +1,40 @@
+#!name = 掌上英雄联盟去开屏广告
+#!desc = 去除掌上英雄联盟（LOL Bible / QTL）的开屏与启动页广告。核心：改写开屏配置接口 platflashbox，关闭腾讯广告 AMS 总开关并清空开屏素材字段；同时置空开屏强弹接口 platstrongshell 与底部标签提示 bottomtab_tip；拒绝腾讯 119.29.29.98 HTTP-DNS 使域名规则正常生效。不拦截登录、资讯、视频等正常功能。需要安装并信任 LOON 的 MITM 证书。
+#!author = Doubao
+#!system = iOS,iPadOS
+#!loon_version = 3.2.3(749)
+#!date = 2026-10-28
+#!tag = 去广告,掌上英雄联盟,腾讯
+
+[Rewrite]
+# ============ 核心：开屏广告配置接口（旧插件遗漏的关键） ============
+# /go/recommend/platflashbox 下发开屏(冷启动)与登录后开屏的素材和开关：
+#   ams_status        = 腾讯广告(AMS)总开关，1=开启，0=关闭
+#   start_*/login_*   = 开屏素材ID/图片URL/跳转URL/任务ID
+#   max_show_splash_times = 开屏最大展示次数
+# 用 jq 一次性改写：关闭开关、清空素材字段、展示次数归零。
+# 注：jq 表达式中不含空格（LOON 旧语法以空格分隔参数）。
+^https?://mlol\.qt\.qq\.com/go/recommend/platflashbox response-body-json-jq '.data.ams_status=0|.data.start_item_id=""|.data.login_item_id=""|.data.start_task_id=0|.data.login_task_id=0|.data.start_banner_id=0|.data.login_banner_id=0|.data.start_jump_url=""|.data.login_jump_url=""|.data.start_src_url=""|.data.login_src_url=""|.data.start_src_md5=""|.data.login_src_md5=""|.data.max_show_splash_times=0'
+
+# ============ 开屏强弹广告 ============
+# /go/recommend/platstrongshell：全屏强弹开屏广告，响应直接置空 {}（原插件同款做法）
+^https?://mlol\.qt\.qq\.com/go/recommend/platstrongshell reject-dict
+
+# ============ 底部标签提示广告 ============
+# /go/zone/bottomtab_tip：底部 Tab 提示条广告，置空（原插件同款做法）
+^https?://mlol\.qt\.qq\.com/go/zone/bottomtab_tip reject-dict
+
+# ============ 腾讯 HTTP-DNS 劫持防护 ============
+# 掌盟使用 119.29.29.98（DNSPod 明文 HTTP DNS，/d?id=...&dn=...）绕开系统 DNS，
+# 会导致 LOON 看不到真实域名、规则失效。拒绝后 App 回落系统 DNS（原插件同款做法）。
+^https?://119\.29\.29\.98/ reject
+
+# ============ 可选：关闭其他广告位（默认注释，按需开启） ============
+# 以下为发现页运营 banner（platbanner）、悬浮窗（floatbox）、腾讯广告曝光/点击上报
+# （szmg.qq.com，offer_id=1450015760）。不属于开屏广告，需要时取消注释并重启 LOON。
+# ^https?://mlol\.qt\.qq\.com/go/recommend/platbanner reject-dict
+# ^https?://mlol\.qt\.qq\.com/go/recommend/floatbox reject-dict
+# ^https?://szmg\.qq\.com/ reject
+
+[Mitm]
+hostname = mlol.qt.qq.com
